@@ -85,9 +85,10 @@ export default class SongCard extends React.Component {
                 draggable="true"
                 onDoubleClick={this.handleEditSong}
             >
-                {num}. 
-                <a href={"https://www.youtube.com/watch?v="+song.youTubeId} >{song.title} by {song.artist}</a>
-                <input type="button" id = {"delete-song-"+num} class="playlister-button" onClick={this.handleDeleteSong} value={"\u2715"}/>
+                {/* {num}.  */}
+                {song.title} by {song.artist}
+                {/* <a href={"https://www.youtube.com/watch?v="+song.youTubeId} >{song.title} by {song.artist}</a> */}
+                {/* <input type="button" id = {"delete-song-"+num} class="playlister-button" onClick={this.handleDeleteSong} value={"\u2715"}/> */}
             </div>
         )
     }
