@@ -4,7 +4,9 @@ import React from "react";
 export default class PlaylistCards extends React.Component {
     render() {
         const { currentList, 
-                moveSongCallback } = this.props;
+                moveSongCallback,
+                deleteSongCallBack,
+                editSongCallBack } = this.props;
         if (currentList === null) {
             return (
                 <div id="playlist-cards"></div>
@@ -19,6 +21,8 @@ export default class PlaylistCards extends React.Component {
                                 id={'playlist-song-' + (index+1)}
                                 key={'playlist-song-' + (index+1)}
                                 song={song}
+                                deleteSongCallBack={deleteSongCallBack}
+                                editSongCallBack={editSongCallBack}
                                 moveCallback={moveSongCallback}
                             />
                         ))

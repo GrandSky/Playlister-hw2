@@ -7,6 +7,9 @@ import jsTPS from './common/jsTPS.js';
 
 // OUR TRANSACTIONS
 import MoveSong_Transaction from './transactions/MoveSong_Transaction.js';
+import DeleteSong_Transaction from './transactions/DeleteSong_Transaction';
+import AddSong_Transaction from './transactions/AddSong_Transaction';
+import EditSong_Transaction from './transactions/EditSong_Transaction';
 
 // THESE REACT COMPONENTS ARE MODALS
 import DeleteListModal from './components/DeleteListModal.js';
@@ -18,6 +21,8 @@ import PlaylistCards from './components/PlaylistCards.js';
 import SidebarHeading from './components/SidebarHeading.js';
 import SidebarList from './components/SidebarList.js';
 import Statusbar from './components/Statusbar.js';
+import DeleteSongModal from './components/DeleteSongModal';
+import EditSongModal from './components/EditSongModal';
 
 class App extends React.Component {
     constructor(props) {
@@ -169,6 +174,7 @@ class App extends React.Component {
     }
     // THIS FUNCTION BEGINS THE PROCESS OF LOADING A LIST FOR EDITING
     loadList = (key) => {
+        this.tps.clearAllTransactions();
         let newCurrentList = this.db.queryGetList(key);
         this.setState(prevState => ({
             listKeyPairMarkedForDeletion : prevState.listKeyPairMarkedForDeletion,
@@ -182,6 +188,7 @@ class App extends React.Component {
     }
     // THIS FUNCTION BEGINS THE PROCESS OF CLOSING THE CURRENT LIST
     closeCurrentList = () => {
+        this.tps.clearAllTransactions();
         this.setState(prevState => ({
             listKeyPairMarkedForDeletion : prevState.listKeyPairMarkedForDeletion,
             currentList: null,
@@ -263,6 +270,107 @@ class App extends React.Component {
             this.showDeleteListModal();
         });
     }
+    markSongForDelete=(index)=>{
+        let title = this.state.currentList.songs[index].title;
+        let song = this.state.currentList.songs[index];
+        this.setState(prevState => ({
+            songIndexMarkedForDeletion: index,
+            songTitleMarkedForDeletion: title,
+            songMarkedForDeletion:song,
+            sessionData: prevState.sessionData  
+        }), () => {
+        this.showDeleteSongModal();
+        });
+    }
+    removeSongTransaction= ()=>{
+        let transaction = new DeleteSong_Transaction(this, this.state.songIndexMarkedForDeletion,this.state.songMarkedForDeletion );
+        this.tps.addTransaction(transaction);
+    }
+    removeSong =(index)=>{
+        this.state.currentList.songs.splice(index,1);
+        this.setStateWithUpdatedList(this.state.currentList);
+        this.hideDeleteSongModal();
+    }
+    showDeleteSongModal(){
+        let modal = document.getElementById("delete-song-modal");
+        modal.classList.add("is-visible")
+    }
+    hideDeleteSongModal(){
+        let modal = document.getElementById("delete-song-modal");
+        modal.classList.remove("is-visible")
+    }
+    addSongTransaction=()=>{
+        let transaction = new AddSong_Transaction(this);
+        this.tps.addTransaction(transaction);
+    }
+    addSong=()=>{
+        this.state.currentList.songs.push({
+            "title": "Untitled",
+            "artist": "Unknown",
+            "youTubeId": "dQw4w9WgXcQ"
+        });
+        this.setStateWithUpdatedList(this.state.currentList);
+    }
+    removePop(){
+        this.state.currentList.songs.pop()
+        this.setStateWithUpdatedList(this.state.currentList);
+    }
+    editSongCallBack=(index)=>{
+        let title = this.state.currentList.songs[index].title;
+        let artist = this.state.currentList.songs[index].artist;
+        let youtubeid = this.state.currentList.songs[index].youTubeId;
+        this.setState(prevState => ({
+            songIndexMarkedForEdit: index,
+            songTitleMarkedForEdit: title,
+            songArtistMarkedForEdit: artist,
+            songIDMarkedForEdit: youtubeid,
+            sessionData: prevState.sessionData  
+        }), () => {
+            let songName2 = document.getElementById("edit-song-title");
+            songName2.value=title ;
+            let songArtist2= document.getElementById("edit-song-artist");
+            songArtist2.value=artist;
+            let songID2=document.getElementById("edit-song-id");
+            songID2.value=youtubeid ;
+            this.showEditSongModal();
+        });
+    }
+    editSong=()=>{
+        this.editSongTransaction(this.state.songIndexMarkedForEdit,this.state.songTitleMarkedForEdit,
+            this.state.songArtistMarkedForEdit,this.state.songIDMarkedForEdit)
+    }
+    editSongTransaction=(index, title, artist, id)=>{
+        let newTitle= document.getElementById("edit-song-title").value;
+        let newArtist= document.getElementById("edit-song-artist").value;
+        let newId= document.getElementById("edit-song-id").value;
+        let newSong= {"title":newTitle,"artist":newArtist,"youTubeId":newId};
+        let oldTitle=title;
+        let oldArtist=artist;
+        let oldId=id;
+        let oldSong= {"title":oldTitle,"artist":oldArtist,"youTubeId":oldId};
+        let transaction = new EditSong_Transaction(this,index,newSong,oldSong);
+        this.tps.addTransaction(transaction);
+        
+        this.hideEditSongModal();
+        
+    }
+    changeSong=(index,song)=>{
+        this.state.currentList.songs.splice(index,1,song);
+        this.setStateWithUpdatedList(this.state.currentList);
+    }
+    addSongAt=(index,newSong)=>{
+        this.state.currentList.songs.splice(index,0,newSong);
+        this.setStateWithUpdatedList(this.state.currentList);
+    }
+    showEditSongModal(){
+        let modal = document.getElementById("edit-song-modal");
+        modal.classList.add("is-visible")
+    }
+
+    hideEditSongModal(){
+        let modal = document.getElementById("edit-song-modal");
+        modal.classList.remove("is-visible")
+    }
     // THIS FUNCTION SHOWS THE MODAL FOR PROMPTING THE USER
     // TO SEE IF THEY REALLY WANT TO DELETE THE LIST
     showDeleteListModal() {
@@ -274,16 +382,26 @@ class App extends React.Component {
         let modal = document.getElementById("delete-list-modal");
         modal.classList.remove("is-visible");
     }
+    controlKeyDown=(event)=>{
+        console.log(event.keyCode)
+        if(event.keyCode===89){
+            this.redo();
+        }else if(event.keyCode===90){
+            this.undo();
+        }
+    }
     render() {
         let canAddSong = this.state.currentList !== null;
         let canUndo = this.tps.hasTransactionToUndo();
         let canRedo = this.tps.hasTransactionToRedo();
         let canClose = this.state.currentList !== null;
+        
         return (
-            <div id="root">
+            <div id="root" onKeyDown={this.controlKeyDown} tabIndex={0}>
                 <Banner />
                 <SidebarHeading
                     createNewListCallback={this.createNewList}
+                    canAddList={canClose}
                 />
                 <SidebarList
                     currentList={this.state.currentList}
@@ -293,16 +411,19 @@ class App extends React.Component {
                     renameListCallback={this.renameList}
                 />
                 <EditToolbar
-                    canAddSong={canAddSong}
-                    canUndo={canUndo}
-                    canRedo={canRedo}
-                    canClose={canClose} 
+                    canAddSong={!canAddSong}
+                    canUndo={!canUndo}
+                    canRedo={!canRedo}
+                    canClose={!canClose} 
+                    addAddSongTransaction={this.addSongTransaction}
                     undoCallback={this.undo}
                     redoCallback={this.redo}
                     closeCallback={this.closeCurrentList}
                 />
                 <PlaylistCards
                     currentList={this.state.currentList}
+                    deleteSongCallBack={this.markSongForDelete}
+                    editSongCallBack={this.editSongCallBack}
                     moveSongCallback={this.addMoveSongTransaction} />
                 <Statusbar 
                     currentList={this.state.currentList} />
@@ -310,6 +431,15 @@ class App extends React.Component {
                     listKeyPair={this.state.listKeyPairMarkedForDeletion}
                     hideDeleteListModalCallback={this.hideDeleteListModal}
                     deleteListCallback={this.deleteMarkedList}
+                />
+                <DeleteSongModal
+                    songTitleMarkedForDeletion={this.state.songTitleMarkedForDeletion}
+                    deleteSongCallback={this.removeSongTransaction}
+                    hideDeleteSongModalCallback={this.hideDeleteSongModal}
+                />
+                <EditSongModal
+                    editSongCallback={this.editSong}
+                    hideEditSongModalCallback={this.hideEditSongModal}
                 />
             </div>
         );
